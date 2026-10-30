@@ -21,7 +21,8 @@ import (
 
 const (
 	// noForkHealthCheckMethod is the JSON-RPC method called to check that a
-	// cached client still has a working session. Empty disables the check.
+	// cached client still has a working session: it returns the signed in
+	// user, or null when the connection has no session.
 	noForkHealthCheckMethod = "session.getUser"
 	// noForkHealthCheckInterval is the minimum time between two health checks
 	// of a cached client.
@@ -53,7 +54,16 @@ type noForkSetup struct {
 // a new session, which must not happen on every reconciliation. A cached
 // client is kept as long as it passes its health checks.
 type noForkSetupCache struct {
-	newProvider func() *schema.Provider
+	newProvider         func() *schema.Provider
+	healthCheckInterval time.Duration
+	healthCheckTimeout  time.Duration
+	idleTimeout         time.Duration
+
+	// configureMu serializes the configurations of the provider: the Xen
+	// Orchestra SDK sets the TLS configuration (insecure or not) of a global
+	// websocket dialer right before dialing, so concurrent configurations
+	// could use the TLS configuration of each other.
+	configureMu sync.Mutex
 
 	// group makes the callers sharing the same credentials wait for a single
 	// health check or configuration, without blocking the other credentials.
@@ -65,8 +75,11 @@ type noForkSetupCache struct {
 
 func newNoForkSetupCache(newProvider func() *schema.Provider) *noForkSetupCache {
 	return &noForkSetupCache{
-		newProvider: newProvider,
-		setups:      map[string]*noForkSetup{},
+		newProvider:         newProvider,
+		healthCheckInterval: noForkHealthCheckInterval,
+		healthCheckTimeout:  noForkHealthCheckTimeout,
+		idleTimeout:         noForkIdleTimeout,
+		setups:              map[string]*noForkSetup{},
 	}
 }
 
@@ -109,13 +122,13 @@ func (c *noForkSetupCache) get(key string, check bool) (any, bool) {
 	meta, checkedAt := s.meta, s.checkedAt
 	c.mu.Unlock()
 
-	if now.Sub(checkedAt) < noForkHealthCheckInterval {
+	if now.Sub(checkedAt) < c.healthCheckInterval {
 		return meta, true
 	}
 	if !check {
 		return nil, false
 	}
-	if err := healthCheck(meta); err != nil {
+	if err := c.healthCheck(meta); err != nil {
 		c.mu.Lock()
 		c.evict(key)
 		c.mu.Unlock()
@@ -133,7 +146,10 @@ func (c *noForkSetupCache) create(ctx context.Context, key string, cfg terraform
 	// A new provider instance is configured each time since the provider
 	// stores the configured client in itself.
 	p := c.newProvider()
-	if diags := p.Configure(context.WithoutCancel(ctx), &tfsdk.ResourceConfig{Config: cfg}); diags.HasError() {
+	c.configureMu.Lock()
+	diags := p.Configure(context.WithoutCancel(ctx), &tfsdk.ResourceConfig{Config: cfg})
+	c.configureMu.Unlock()
+	if diags.HasError() {
 		return nil, errors.Errorf("cannot configure the Terraform provider: %v", diags)
 	}
 	now := time.Now()
@@ -143,10 +159,10 @@ func (c *noForkSetupCache) create(ctx context.Context, key string, cfg terraform
 	return p.Meta(), nil
 }
 
-// evictIdle evicts the clients unused for noForkIdleTimeout. c.mu must be held.
+// evictIdle evicts the clients unused for c.idleTimeout. c.mu must be held.
 func (c *noForkSetupCache) evictIdle(now time.Time) {
 	for key, s := range c.setups {
-		if now.Sub(s.usedAt) > noForkIdleTimeout {
+		if now.Sub(s.usedAt) > c.idleTimeout {
 			c.evict(key)
 		}
 	}
@@ -165,21 +181,30 @@ func (c *noForkSetupCache) evict(key string) {
 	}
 }
 
-// healthCheck calls noForkHealthCheckMethod on the client, if it supports it.
-func healthCheck(meta any) error {
+// healthCheck calls noForkHealthCheckMethod on the client, if it supports it,
+// and fails if the call fails or the client has no session.
+func (c *noForkSetupCache) healthCheck(meta any) error {
 	caller, ok := meta.(rpcCaller)
-	if !ok || noForkHealthCheckMethod == "" {
+	if !ok {
 		return nil
 	}
 	done := make(chan error, 1)
 	go func() {
-		var result any
-		done <- caller.Call(noForkHealthCheckMethod, map[string]any{"dummy": "dummy"}, &result)
+		var user any
+		if err := caller.Call(noForkHealthCheckMethod, map[string]any{"dummy": "dummy"}, &user); err != nil {
+			done <- err
+			return
+		}
+		if user == nil {
+			done <- errors.New("the connection has no session")
+			return
+		}
+		done <- nil
 	}()
 	select {
 	case err := <-done:
 		return err
-	case <-time.After(noForkHealthCheckTimeout):
+	case <-time.After(c.healthCheckTimeout):
 		return errors.New("health check timed out")
 	}
 }
