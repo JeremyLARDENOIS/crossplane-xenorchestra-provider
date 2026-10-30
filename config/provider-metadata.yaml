@@ -1,0 +1,345 @@
+name: vatesfr/xenorchestra
+resources:
+    xenorchestra_acl:
+        subCategory: ""
+        name: xenorchestra_acl
+        title: xenorchestra_acl Resource - terraform-provider-xenorchestra
+        examples:
+            - name: acl
+              manifest: |-
+                {
+                  "action": "operator",
+                  "object": "${data.xenorchestra_pool.pool.id}",
+                  "subject": "${data.xenorchestra_user.user.id}"
+                }
+              references:
+                object: data.xenorchestra_pool.pool.id
+                subject: data.xenorchestra_user.user.id
+        argumentDocs:
+            action: (String) Must be one of admin, operator, viewer. See the Xen orchestra docs on ACLs for more details.
+            id: (String) The ID of this resource.
+            object: (String) The id of the object that will be able to be used by the subject.
+            subject: (String) The uuid of the user account that the acl will apply to.
+        importStatements: []
+    xenorchestra_bonded_network:
+        subCategory: ""
+        description: A resource for managing Bonded Xen Orchestra networks. See the XCP-ng networking docs https://xcp-ng.org/docs/networking.html for more details.
+        name: xenorchestra_bonded_network
+        title: xenorchestra_bonded_network Resource - terraform-provider-xenorchestra
+        examples:
+            - name: network
+              manifest: |-
+                {
+                  "bond_mode": "active-backup",
+                  "name_label": "new network name",
+                  "pif_ids": [
+                    "${data.xenorchestra_pif.eth1.id}",
+                    "${data.xenorchestra_pif.eth2.id}"
+                  ],
+                  "pool_id": "${data.xenorchestra_host.host1.pool_id}"
+                }
+              references:
+                pif_ids: data.xenorchestra_pif.eth1.id
+                pool_id: data.xenorchestra_host.host1.pool_id
+            - name: network_vlan
+              manifest: |-
+                {
+                  "bond_mode": "active-backup",
+                  "name_label": "new network name",
+                  "pif_ids": [
+                    "${data.xenorchestra_pif.eth1_vlan.id}",
+                    "${data.xenorchestra_pif.eth2_vlan.id}"
+                  ],
+                  "pool_id": "${data.xenorchestra_host.host1.pool_id}"
+                }
+              references:
+                pif_ids: data.xenorchestra_pif.eth1_vlan.id
+                pool_id: data.xenorchestra_host.host1.pool_id
+        argumentDocs:
+            automatic: (Boolean)
+            bond_mode: (String) The bond mode that should be used for this network.
+            default_is_locked: (Boolean) This argument controls whether the network should enforce VIF locking. This defaults to false which means that no filtering rules are applied.
+            id: (String) The ID of this resource.
+            mtu: (Number) The MTU of the network. Defaults to 1500 if unspecified.
+            name_description: (String)
+            name_label: (String) The name label of the network.
+            pif_ids: (List of String) The PIFs (uuid) that should be used for this network.
+            pool_id: (String) The pool id that this network should belong to.
+        importStatements: []
+    xenorchestra_cloud_config:
+        subCategory: ""
+        description: Creates a Xen Orchestra cloud config resource.
+        name: xenorchestra_cloud_config
+        title: xenorchestra_cloud_config Resource - terraform-provider-xenorchestra
+        examples:
+            - name: demo
+              manifest: |-
+                {
+                  "name": "cloud config name",
+                  "template": "#cloud-config\n\nruncmd:\n - [ ls, -l, / ]\n - [ sh, -xc, \"echo $(date) ': hello world!'\" ]\n - [ sh, -c, echo \"=========hello world'=========\" ]\n - ls -l /root\n"
+                }
+              dependencies:
+                xenorchestra_vm.bar: |-
+                    {
+                      "cloud_config": "${xenorchestra_cloud_config.demo.template}"
+                    }
+        argumentDocs:
+            id: (String) The ID of this resource.
+            name: (String) The name of the cloud config.
+            template: (String) The cloud init config. See the cloud init docs for more information.
+        importStatements: []
+    xenorchestra_network:
+        subCategory: ""
+        name: xenorchestra_network
+        title: xenorchestra_network Resource - terraform-provider-xenorchestra
+        examples:
+            - name: private_network
+              manifest: |-
+                {
+                  "name_label": "new network name",
+                  "pool_id": "${data.xenorchestra_host.host1.pool_id}"
+                }
+              references:
+                pool_id: data.xenorchestra_host.host1.pool_id
+            - name: vlan_network
+              manifest: |-
+                {
+                  "name_label": "new network name",
+                  "pool_id": "${data.xenorchestra_host.host1.pool_id}",
+                  "source_pif_device": "eth0",
+                  "vlan": 22
+                }
+              references:
+                pool_id: data.xenorchestra_host.host1.pool_id
+        argumentDocs:
+            automatic: (Boolean)
+            default_is_locked: (Boolean) This argument controls whether the network should enforce VIF locking. This defaults to false which means that no filtering rules are applied.
+            id: (String) The ID of this resource.
+            mtu: (Number) The MTU of the network. Defaults to 1500 if unspecified.
+            name_description: (String)
+            name_label: (String) The name label of the network.
+            nbd: (Boolean) Whether the network should use a network block device. Defaults to false if unspecified.
+            pool_id: (String) The pool id that this network should belong to.
+            source_pif_device: (String) The PIF device (eth0, eth1, etc) that will be used as an input during network creation. This parameter is required if a vlan is specified.
+            vlan: (Number) The vlan to use for the network. Defaults to 0 meaning no VLAN.
+        importStatements: []
+    xenorchestra_resource_set:
+        subCategory: ""
+        description: Creates a Xen Orchestra resource set.
+        name: xenorchestra_resource_set
+        title: xenorchestra_resource_set Resource - terraform-provider-xenorchestra
+        examples:
+            - name: rs
+              manifest: |-
+                {
+                  "limit": [
+                    {
+                      "quantity": 20,
+                      "type": "cpus"
+                    },
+                    {
+                      "quantity": 107374182400,
+                      "type": "disk"
+                    },
+                    {
+                      "quantity": 12884901888,
+                      "type": "memory"
+                    }
+                  ],
+                  "name": "new-resource-set",
+                  "objects": [
+                    "${data.xenorchestra_template.template.id}",
+                    "${data.xenorchestra_sr.sr.id}",
+                    "${data.xenorchestra_pif.eth0.network}"
+                  ],
+                  "subjects": [
+                    "${data.xenorchestra_user.user.id}"
+                  ]
+                }
+              references:
+                objects: data.xenorchestra_template.template.id
+                subjects: data.xenorchestra_user.user.id
+        argumentDocs:
+            id: (String) The ID of this resource.
+            limit: '(Block Set, Min: 1) The limit applied to the resource set. (see below for nested schema)'
+            name: (String) The name of the resource set.
+            objects: (Set of String) The uuids of the objects that are within scope of the resource set. A minimum of a storage repository, network and VM template are required for users to launch VMs.
+            quantity: (Number) The numerical limit for the given type.
+            subjects: (Set of String) The uuids of the user accounts that should have access to the resource set.
+            type: (String) The type of resource set limit. Must be cpus, memory or disk.
+        importStatements:
+            - |-
+              # ID can be found from the following command:
+              # $ xo-cli resourceSet.getAll
+              $ terraform import xenorchestra_resource_set.rs MGSpuwnbtUE
+    xenorchestra_vdi:
+        subCategory: ""
+        description: Creates a Xen Orchestra vdi resource.
+        name: xenorchestra_vdi
+        title: xenorchestra_vdi Resource - terraform-provider-xenorchestra
+        examples:
+            - name: bar
+              manifest: |-
+                {
+                  "filepath": "${path.module}/isos/alpine-virt-3.17.0-x86_64.iso",
+                  "name_label": "alpine-virt-3-17-0",
+                  "sr_id": "${data.xenorchestra_sr.sr.id}",
+                  "type": "raw"
+                }
+              references:
+                sr_id: data.xenorchestra_sr.sr.id
+              dependencies:
+                xenorchestra_vm.bar: |-
+                    {
+                      "cdrom": [
+                        {
+                          "id": "${resource.xenorchestra_vdi.bar.id}"
+                        }
+                      ]
+                    }
+        argumentDocs:
+            filepath: (String) The file path to the ISO or vdi image that should be uploaded when the VDI is created.
+            id: (String) The ID of this resource.
+            name_label: (String) The name label of the VDI
+            sr_id: (String) The id of the storage repository the VDI should be created in. Make sure the storage repository supports the file you are uploading! For example, ISOs should only be uploaded to ISO storage repositories.
+            type: (String) Only raw uploads are supported today, but vhd support may be added in the future.
+        importStatements: []
+    xenorchestra_vm:
+        subCategory: ""
+        description: 'Creates a Xen Orchestra vm resource. Differences with the Xen Orchestra UI Cloudinit Xen Orchestra allows templating cloudinit config through its own custom mechanism: "{name}" is replaced with the VM''s name"%" is replaced with the VM''s index This does not work in terraform since that is applied on Xen Orchestra''s client side (Javascript). Terraform provides a "templatefile" function that allows for a similar substitution. Please see the example below for more details.'
+        name: xenorchestra_vm
+        title: xenorchestra_vm Resource - terraform-provider-xenorchestra
+        examples:
+            - name: bar
+              manifest: |-
+                {
+                  "affinity_host": "${data.xenorchestra_pool.pool.master}",
+                  "cloud_config": "${xenorchestra_cloud_config.bar.template}",
+                  "cpus": 1,
+                  "disk": [
+                    {
+                      "name_label": "Ubuntu Bionic Beaver 18.04_imavo",
+                      "size": 32212254720,
+                      "sr_id": "7f469400-4a2b-5624-cf62-61e522e50ea1"
+                    }
+                  ],
+                  "memory_max": 1073733632,
+                  "name_description": "description",
+                  "name_label": "Name",
+                  "network": [
+                    {
+                      "network_id": "${data.xenorchestra_network.net.id}"
+                    }
+                  ],
+                  "tags": [
+                    "Ubuntu",
+                    "Bionic"
+                  ],
+                  "template": "${data.xenorchestra_template.template.id}",
+                  "timeouts": [
+                    {
+                      "create": "20m"
+                    }
+                  ],
+                  "xenstore": {
+                    "key1": "val1",
+                    "key2": "val2"
+                  }
+                }
+              references:
+                affinity_host: data.xenorchestra_pool.pool.master
+                cloud_config: xenorchestra_cloud_config.bar.template
+                network.network_id: data.xenorchestra_network.net.id
+                template: data.xenorchestra_template.template.id
+              dependencies:
+                xenorchestra_cloud_config.bar: |-
+                    {
+                      "name": "cloud config name",
+                      "template": "${templatefile(\"cloud_config.tftpl\", {\n    hostname = \"your-hostname\"\n    domain   = \"your.domain.com\"\n  })}"
+                    }
+            - name: vm
+              manifest: |-
+                {
+                  "cpus": 2,
+                  "disk": [
+                    {
+                      "name_label": "Ubuntu Bionic Beaver 18.04_imavo",
+                      "size": 32212254720,
+                      "sr_id": "7f469400-4a2b-5624-cf62-61e522e50ea1"
+                    }
+                  ],
+                  "memory_max": 1073733632,
+                  "name_label": "Name",
+                  "network": [
+                    {
+                      "expected_ip_cidr": "10.0.0.0/16",
+                      "network_id": "7ed8998b-405c-40b5-b164-f9058efcf6b4"
+                    },
+                    {
+                      "network_id": "b4cf8532-ae43-493b-9fc6-a6b456d16876"
+                    }
+                  ],
+                  "template": "${data.xenorchestra_template.template.id}"
+                }
+              references:
+                template: data.xenorchestra_template.template.id
+              dependencies:
+                xenorchestra_cloud_config.bar: |-
+                    {
+                      "name": "cloud config name",
+                      "template": "${templatefile(\"cloud_config.tftpl\", {\n    hostname = \"your-hostname\"\n    domain   = \"your.domain.com\"\n  })}"
+                    }
+        argumentDocs:
+            affinity_host: (String) The preferred host you would like the VM to run on. If changed on an existing VM it will require a reboot for the VM to be rescheduled.
+            attached: (Boolean) Whether the device should be attached to the VM.
+            auto_poweron: (Boolean) If the VM will automatically turn on. Defaults to false.
+            blocked_operations: '(Set of String) List of operations on a VM that are not permitted. Examples include: clean_reboot, clean_shutdown, hard_reboot, hard_shutdown, pause, shutdown, suspend, destroy. See: https://xapi-project.github.io/xen-api/classes/vm.html#enum_vm_operations'
+            cdrom: '(Block List, Max: 1) The ISO that should be attached to VM. This allows you to create a VM from a diskless template (any templates available from xe template-list) and install the OS from the following ISO. (see below for nested schema)'
+            clone_type: (String) The type of clone to perform for the VM. Possible values include fast or full and defaults to fast. In order to perform a full clone, the VM template must not be a disk template.
+            cloud_config: (String) The content of the cloud-init config to use. See the cloud init docs for more information.
+            cloud_network_config: (String) The content of the cloud-init network configuration for the VM (uses version 1)
+            core_os: (Boolean)
+            cores_per_socket: (Number) The number of cores per socket for the VM's CPU topology. This value must evenly divide the total number of CPUs. If not set, the VM uses XO/XAPI defaults (typically 1 core per socket).
+            cpu_cap: (Number) The CPU usage cap of the VM, in hundredths of vCPU (e.g. 100 = 1 vCPU max). 0 means no cap.
+            cpu_weight: (Number) The relative CPU scheduling weight for the VM (dimensionless). Higher values give the VM more CPU time relative to others. Valid range is 1-65535. 0 uses the default weight.
+            cpus: '(Number) The number of CPUs the VM will have. Updates to this field will cause a stop and start of the VM if the new CPU value is greater than the max CPU value. This can be determined with the following command:'
+            create: (String)
+            delete: (String)
+            destroy_cloud_config_vdi_after_boot: (Boolean) Determines whether the cloud config VDI should be deleted once the VM has booted. Defaults to false. If set to true, power_state must be set to Running.
+            device: (String)
+            disk: '(Block List, Min: 1) The disk the VM will have access to. (see below for nested schema)'
+            exp_nested_hvm: (Boolean) Boolean parameter that allows a VM to use nested virtualization.
+            expected_ip_cidr: (String) Determines the IP CIDR range the provider will wait for on this network interface. Resource creation is not complete until an IP address within the specified range becomes available. This parameter replaces the former wait_for_ip functionality. This only works if guest-tools are installed in the VM. Defaults to "", which skips IP address matching.
+            high_availability: (String) The restart priority for the VM. Possible values are best-effort, restart and empty string (no restarts on failure. Defaults to empty string
+            host: (String)
+            hvm_boot_firmware: (String) The firmware to use for the VM. Possible values are bios and uefi.
+            id: (String) The ID of this resource.
+            installation_method: (String) This cannot be used with cdrom. Possible values are network which allows a VM to boot via PXE.
+            ipv4_addresses: (List of String) This is only accessible if guest-tools is installed in the VM. While the output contains a list of ipv4 addresses, the presence of an IP address is only guaranteed if expected_ip_cidr is set for that interface. The list contains the ipv4 addresses across all network interfaces in order. See the example terraform code for more details.
+            ipv6_addresses: (List of String) This is only accessible if guest-tools is installed in the VM. While the output contains a list of ipv6 addresses, the presence of an IP address is only guaranteed if expected_ip_cidr is set for that interface. The list contains the ipv6 addresses across all network interfaces in order.
+            mac_address: (String) The mac address of the network interface. This must be parsable by go's net.ParseMAC function. All mac addresses are stored in Terraform's state with HardwareAddr's string representation i.e. 00:00:5e:00:53:01
+            memory_max: '(Number) The amount of memory in bytes the VM will have.\n\n!!! WARNING: Updates to this field will cause the VM to stop and start, as it sets both dynamic and static maximums.'
+            memory_min: (Number) The amount of memory in bytes the VM will have. Set this value equal to memory_max to have a static memory.
+            name_description: (String) The description of the VM.
+            name_label: (String) The name of the VM.
+            network: '(Block List, Min: 1) The network for the VM. (see below for nested schema)'
+            network_id: (String) The ID of the network the VM will be on.
+            position: (String) Indicates the order of the block device.
+            power_state: (String) The power state of the VM. This can be Running, Halted, Paused or Suspended.
+            resource_set: (String)
+            secure_boot: (Boolean) Enable UEFI secure boot for the VM.
+            share: (Boolean) Allow the subjects of the resource set to use the VM. Only applies when resource_set is set. Can be changed on an existing VM, but setting it to false requires the VM to leave its resource set at the same time, since a VM shared in a resource set is always shared in Xen Orchestra (there is no unshare operation).
+            size: (Number) The size in bytes for the disk.
+            sockets: (Number) The number of CPU sockets. This is computed as cpus / cores_per_socket.
+            sr_id: (String) The storage repository ID to use.
+            start_delay: (Number) Number of seconds the VM should be delayed from starting.
+            tags: (Set of String) The tags (labels) applied to the given entity. Not used for filtering if empty.
+            template: (String) The ID of the VM template to create the new VM from.
+            timeouts: (Block, Optional) (see below for nested schema)
+            update: (String)
+            vbd_id: (String)
+            vdi_id: (String)
+            vga: (String) The video adapter the VM should use. Possible values include std and cirrus.
+            videoram: (Number) The videoram amount in MiB the VM should use. Possible values include 1, 2, 4, 8, 16.
+            xenstore: (Map of String) The key value pairs to be populated in xenstore.
+        importStatements: []

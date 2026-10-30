@@ -1,0 +1,17 @@
+apiVersion: network.xenorchestra.m.crossplane.io/v1alpha1
+kind: BondedNetwork
+metadata:
+  annotations:
+    meta.upbound.io/example-id: network/v1alpha1/bondednetwork
+  labels:
+    testing.upbound.io/example-name: network
+  name: network
+  namespace: crossplane-system
+spec:
+  forProvider:
+    bondMode: active-backup
+    nameLabel: new network name
+    pifIds:
+    - ${data.xenorchestra_pif.eth1.id}
+    - ${data.xenorchestra_pif.eth2.id}
+    poolId: ${data.xenorchestra_host.host1.pool_id}

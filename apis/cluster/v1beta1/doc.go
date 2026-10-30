@@ -1,0 +1,5 @@
+// Package v1beta1 contains the core resources of the xenorchestra upjet provider.
+// +kubebuilder:object:generate=true
+// +groupName=xenorchestra.crossplane.io
+// +versionName=v1beta1
+package v1beta1

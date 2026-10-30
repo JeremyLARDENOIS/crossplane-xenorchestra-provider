@@ -1,0 +1,33 @@
+apiVersion: storage.xenorchestra.m.crossplane.io/v1alpha1
+kind: VDI
+metadata:
+  annotations:
+    meta.upbound.io/example-id: storage/v1alpha1/vdi
+  labels:
+    testing.upbound.io/example-name: bar
+  name: bar
+  namespace: crossplane-system
+spec:
+  forProvider:
+    filepath: ${path.module}/isos/alpine-virt-3.17.0-x86_64.iso
+    nameLabel: alpine-virt-3-17-0
+    srId: ${data.xenorchestra_sr.sr.id}
+    type: raw
+
+---
+
+apiVersion: vm.xenorchestra.m.crossplane.io/v1alpha1
+kind: VM
+metadata:
+  annotations:
+    meta.upbound.io/example-id: storage/v1alpha1/vdi
+  labels:
+    testing.upbound.io/example-name: bar
+  name: bar
+  namespace: crossplane-system
+spec:
+  forProvider:
+    cdrom:
+    - idSelector:
+        matchLabels:
+          testing.upbound.io/example-name: xenorchestra_vdi

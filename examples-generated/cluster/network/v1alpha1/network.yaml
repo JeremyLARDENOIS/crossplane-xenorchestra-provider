@@ -1,0 +1,12 @@
+apiVersion: network.xenorchestra.crossplane.io/v1alpha1
+kind: Network
+metadata:
+  annotations:
+    meta.upbound.io/example-id: network/v1alpha1/network
+  labels:
+    testing.upbound.io/example-name: private_network
+  name: private-network
+spec:
+  forProvider:
+    nameLabel: new network name
+    poolId: ${data.xenorchestra_host.host1.pool_id}

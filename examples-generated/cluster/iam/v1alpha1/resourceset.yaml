@@ -1,0 +1,24 @@
+apiVersion: iam.xenorchestra.crossplane.io/v1alpha1
+kind: ResourceSet
+metadata:
+  annotations:
+    meta.upbound.io/example-id: iam/v1alpha1/resourceset
+  labels:
+    testing.upbound.io/example-name: rs
+  name: rs
+spec:
+  forProvider:
+    limit:
+    - quantity: 20
+      type: cpus
+    - quantity: 107374182400
+      type: disk
+    - quantity: 12884901888
+      type: memory
+    name: new-resource-set
+    objects:
+    - ${data.xenorchestra_template.template.id}
+    - ${data.xenorchestra_sr.sr.id}
+    - ${data.xenorchestra_pif.eth0.network}
+    subjects:
+    - ${data.xenorchestra_user.user.id}

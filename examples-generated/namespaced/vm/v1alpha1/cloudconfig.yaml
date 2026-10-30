@@ -1,0 +1,42 @@
+apiVersion: vm.xenorchestra.m.crossplane.io/v1alpha1
+kind: CloudConfig
+metadata:
+  annotations:
+    meta.upbound.io/example-id: vm/v1alpha1/cloudconfig
+  labels:
+    testing.upbound.io/example-name: demo
+  name: demo
+  namespace: crossplane-system
+spec:
+  forProvider:
+    name: cloud config name
+    template: |
+      #cloud-config
+
+      runcmd:
+       - [ ls, -l, / ]
+       - [ sh, -xc, "echo $(date) ': hello world!'" ]
+       - [ sh, -c, echo "=========hello world'=========" ]
+       - ls -l /root
+
+---
+
+apiVersion: vm.xenorchestra.m.crossplane.io/v1alpha1
+kind: VM
+metadata:
+  annotations:
+    meta.upbound.io/example-id: vm/v1alpha1/cloudconfig
+  labels:
+    testing.upbound.io/example-name: bar
+  name: bar
+  namespace: crossplane-system
+spec:
+  forProvider:
+    cloudConfig: |
+      #cloud-config
+
+      runcmd:
+       - [ ls, -l, / ]
+       - [ sh, -xc, "echo $(date) ': hello world!'" ]
+       - [ sh, -c, echo "=========hello world'=========" ]
+       - ls -l /root

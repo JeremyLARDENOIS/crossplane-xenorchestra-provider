@@ -1,0 +1,61 @@
+apiVersion: vm.xenorchestra.m.crossplane.io/v1alpha1
+kind: VM
+metadata:
+  annotations:
+    meta.upbound.io/example-id: vm/v1alpha1/vm
+  labels:
+    testing.upbound.io/example-name: bar
+  name: bar
+  namespace: crossplane-system
+spec:
+  forProvider:
+    affinityHost: ${data.xenorchestra_pool.pool.master}
+    cloudConfig: |
+      #cloud-config
+
+      runcmd:
+       - [ ls, -l, / ]
+       - [ sh, -xc, "echo $(date) ': hello world!'" ]
+       - [ sh, -c, echo "=========hello world'=========" ]
+       - ls -l /root
+    cpus: 1
+    disk:
+    - nameLabel: Ubuntu Bionic Beaver 18.04_imavo
+      size: 32212254720
+      srId: 7f469400-4a2b-5624-cf62-61e522e50ea1
+    memoryMax: 1073733632
+    nameDescription: description
+    nameLabel: Name
+    network:
+    - networkIdSelector:
+        matchLabels:
+          testing.upbound.io/example-name: xenorchestra_network
+    tags:
+    - Ubuntu
+    - Bionic
+    template: ${data.xenorchestra_template.template.id}
+    timeouts:
+    - create: 20m
+    xenstore:
+      key1: val1
+      key2: val2
+
+---
+
+apiVersion: vm.xenorchestra.m.crossplane.io/v1alpha1
+kind: CloudConfig
+metadata:
+  annotations:
+    meta.upbound.io/example-id: vm/v1alpha1/vm
+  labels:
+    testing.upbound.io/example-name: bar
+  name: bar
+  namespace: crossplane-system
+spec:
+  forProvider:
+    name: cloud config name
+    template: |-
+      ${templatefile("cloud_config.tftpl", {
+          hostname = "your-hostname"
+          domain   = "your.domain.com"
+        })}

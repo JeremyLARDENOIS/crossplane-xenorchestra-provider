@@ -1,0 +1,13 @@
+apiVersion: iam.xenorchestra.crossplane.io/v1alpha1
+kind: ACL
+metadata:
+  annotations:
+    meta.upbound.io/example-id: iam/v1alpha1/acl
+  labels:
+    testing.upbound.io/example-name: acl
+  name: acl
+spec:
+  forProvider:
+    action: operator
+    object: ${data.xenorchestra_pool.pool.id}
+    subject: ${data.xenorchestra_user.user.id}
