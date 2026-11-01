@@ -10,6 +10,9 @@ on:
         description: 'Tag message'
         required: true
 
+permissions:
+  contents: write
+
 jobs:
   tag:
     uses: crossplane-contrib/provider-workflows/.github/workflows/tag.yml@451c4dc6ad3691b0a702a997a0ac24e8bbc8bbaa # main
